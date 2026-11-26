@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Rupam Business Manager</title>
+    <meta name="description" content="B2B cosmetic & FMCG wholesale management platform for Rupam (Nuapatna, Cuttack, Odisha). Orders, stock, khata, deliveries, returns, AI assistant, and Dukani portal." />
+    <meta property="og:title" content="Rupam Business Manager" />
+    <meta property="og:description" content="B2B cosmetic & FMCG wholesale management platform for Rupam (Nuapatna, Cuttack, Odisha). Orders, stock, khata, deliveries, returns, AI assistant, and Dukani portal." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/assets/aistudio/IMG_20261113_083134_a6a26f75.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#EFF6FF" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- JSON-LD LocalBusiness Structured Data for Nuapatna B2B Wholesale -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WholesaleStore",
+      "name": "Rupam Wholesale Cosmetics & FMCG",
+      "image": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e",
+      "telephone": "+919437123456",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Near Daily Market",
+        "addressLocality": "Nuapatna, Cuttack",
+        "addressRegion": "Odisha",
+        "postalCode": "754035",
+        "addressCountry": "IN"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 20.4856,
+        "longitude": 85.8344
+      },
+      "areaServed": "150 km Radius around Nuapatna (Cuttack, Bhubaneswar, Jajpur, Kendrapara, Jagatsinghpur, Dhenkanal, Puri)",
+      "priceRange": "₹1,000 - ₹50,000"
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,572 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // Hardened Global Helpers
+    // ------------------------------------------------------------------
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isNonEmptyStr(val, maxLen) {
+      return val is string && val.size() >= 1 && val.size() <= maxLen;
+    }
+
+    function isStr(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'beherashuvam30@gmail.com' ||
+        request.auth.token.email == 'Rupamb2b@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isOwnerDoc(data) {
+      return isSignedIn() && data.ownerUid == request.auth.uid;
+    }
+
+    // ------------------------------------------------------------------
+    // Entity Validation Blueprints (Anti-Update-Gap)
+    // ------------------------------------------------------------------
+    function isValidUserAccount(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'activeBusinessId', 'createdAt', 'updatedAt']) &&
+        isValidId(data.uid) &&
+        data.uid == request.auth.uid &&
+        isStr(data.email, 200) &&
+        isNonEmptyStr(data.displayName, 120) &&
+        data.role in ['owner', 'customer', 'supplier'] &&
+        (!('activeBusinessId' in data) || isValidId(data.activeBusinessId));
+    }
+
+    function isValidBusinessProfile(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'companyName', 'ownerName', 'upiId', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'companyName', 'ownerName', 'category', 'phone', 'address', 'city', 'state', 'upiId', 'minOrderValue', 'freeDeliveryRadiusKm', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isNonEmptyStr(data.companyName, 160) &&
+        isNonEmptyStr(data.ownerName, 120) &&
+        isNonEmptyStr(data.upiId, 100) &&
+        (!('category' in data) || isStr(data.category, 100)) &&
+        (!('phone' in data) || isStr(data.phone, 30)) &&
+        (!('address' in data) || isStr(data.address, 300)) &&
+        (!('city' in data) || isStr(data.city, 80)) &&
+        (!('state' in data) || isStr(data.state, 80)) &&
+        (!('minOrderValue' in data) || (data.minOrderValue is number && data.minOrderValue >= 0)) &&
+        (!('freeDeliveryRadiusKm' in data) || (data.freeDeliveryRadiusKm is number && data.freeDeliveryRadiusKm >= 0));
+    }
+
+    function isValidCustomer(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'shopName', 'ownerName', 'phone', 'pendingBalance', 'pendingUdhaar', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'shopName', 'ownerName', 'phone', 'address', 'city', 'state', 'distanceKm', 'category', 'pendingBalance', 'pendingUdhaar', 'totalOrders', 'totalSales', 'lastOrderDate', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isNonEmptyStr(data.shopName, 160) &&
+        isNonEmptyStr(data.ownerName, 120) &&
+        isStr(data.phone, 30) &&
+        data.pendingBalance is number && data.pendingBalance >= 0 &&
+        data.pendingUdhaar is number && data.pendingUdhaar >= 0 &&
+        (!('address' in data) || isStr(data.address, 300)) &&
+        (!('city' in data) || isStr(data.city, 80)) &&
+        (!('state' in data) || isStr(data.state, 80)) &&
+        (!('distanceKm' in data) || (data.distanceKm is number && data.distanceKm >= 0)) &&
+        (!('category' in data) || isStr(data.category, 80)) &&
+        (!('totalOrders' in data) || (data.totalOrders is number && data.totalOrders >= 0)) &&
+        (!('totalSales' in data) || (data.totalSales is number && data.totalSales >= 0)) &&
+        (!('lastOrderDate' in data) || isStr(data.lastOrderDate, 40));
+    }
+
+    function isValidSupplier(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'name', 'phone', 'dueAmount', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'name', 'brandAuth', 'phone', 'address', 'paymentTerms', 'rating', 'dueAmount', 'upiId', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isNonEmptyStr(data.name, 160) &&
+        isStr(data.phone, 30) &&
+        data.dueAmount is number && data.dueAmount >= 0 &&
+        (!('brandAuth' in data) || isStr(data.brandAuth, 160)) &&
+        (!('address' in data) || isStr(data.address, 300)) &&
+        (!('paymentTerms' in data) || isStr(data.paymentTerms, 120)) &&
+        (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+        (!('upiId' in data) || isStr(data.upiId, 100));
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'name', 'sku', 'packSize', 'packetStock', 'purchaseCost', 'sellingPrice', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'name', 'sku', 'brand', 'category', 'packSize', 'packetStock', 'piecesStock', 'purchaseCost', 'sellingPrice', 'marginPercent', 'reorderLevel', 'isLowStock', 'supplierId', 'warehouseZone', 'shelfCode', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isNonEmptyStr(data.name, 180) &&
+        isStr(data.sku, 80) &&
+        data.packSize in [6, 12] &&
+        data.packetStock is number && data.packetStock >= 0 &&
+        data.purchaseCost is number && data.purchaseCost >= 0 &&
+        data.sellingPrice is number && data.sellingPrice >= 0 &&
+        (!('brand' in data) || isStr(data.brand, 100)) &&
+        (!('category' in data) || isStr(data.category, 100)) &&
+        (!('piecesStock' in data) || (data.piecesStock is number && data.piecesStock >= 0)) &&
+        (!('marginPercent' in data) || data.marginPercent is number) &&
+        (!('reorderLevel' in data) || (data.reorderLevel is number && data.reorderLevel >= 0)) &&
+        (!('isLowStock' in data) || data.isLowStock is bool) &&
+        (!('supplierId' in data) || isStr(data.supplierId, 128)) &&
+        (!('warehouseZone' in data) || isStr(data.warehouseZone, 80)) &&
+        (!('shelfCode' in data) || isStr(data.shelfCode, 40));
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'orderNumber', 'customerId', 'shopName', 'totalAmount', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'orderNumber', 'customerId', 'customerName', 'shopName', 'phone', 'totalAmount', 'advanceAmount', 'advancePaid', 'balanceAmount', 'status', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isNonEmptyStr(data.orderNumber, 80) &&
+        isStr(data.customerId, 128) &&
+        isNonEmptyStr(data.shopName, 160) &&
+        data.totalAmount is number && data.totalAmount >= 0 &&
+        data.status in ['Enquiry', 'Advance Pending', 'Booked', 'Packed', 'Dispatched', 'Delivered', 'On Hold', 'Reschedule', 'Cancelled', 'Returned'] &&
+        (!('customerName' in data) || isStr(data.customerName, 120)) &&
+        (!('phone' in data) || isStr(data.phone, 30)) &&
+        (!('advanceAmount' in data) || (data.advanceAmount is number && data.advanceAmount >= 0)) &&
+        (!('advancePaid' in data) || data.advancePaid is bool) &&
+        (!('balanceAmount' in data) || (data.balanceAmount is number && data.balanceAmount >= 0));
+    }
+
+    function isValidPayment(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'customerId', 'amount', 'mode', 'referenceId', 'confirmedByOwner', 'date', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'customerId', 'customerName', 'shopName', 'amount', 'mode', 'referenceId', 'confirmedByOwner', 'type', 'note', 'date', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isStr(data.customerId, 128) &&
+        data.amount is number && data.amount > 0 &&
+        data.mode in ['UPI', 'Cash', 'Bank', 'Bus-cash'] &&
+        isNonEmptyStr(data.referenceId, 120) &&
+        data.confirmedByOwner is bool &&
+        isNonEmptyStr(data.date, 50) &&
+        (!('customerName' in data) || isStr(data.customerName, 120)) &&
+        (!('shopName' in data) || isStr(data.shopName, 160)) &&
+        (!('type' in data) || isStr(data.type, 40)) &&
+        (!('note' in data) || isStr(data.note, 400));
+    }
+
+    function isValidUdhaarRecord(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'customerId', 'shopName', 'orderId', 'shortageAmount', 'status', 'date', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'customerId', 'shopName', 'phone', 'orderId', 'orderNumber', 'shortageAmount', 'billAmount', 'shortagePct', 'status', 'date', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isStr(data.customerId, 128) &&
+        isNonEmptyStr(data.shopName, 160) &&
+        isStr(data.orderId, 128) &&
+        data.shortageAmount is number && data.shortageAmount >= 0 &&
+        data.status in ['Pending', 'Cleared'] &&
+        isNonEmptyStr(data.date, 50) &&
+        (!('phone' in data) || isStr(data.phone, 30)) &&
+        (!('orderNumber' in data) || isStr(data.orderNumber, 80)) &&
+        (!('billAmount' in data) || (data.billAmount is number && data.billAmount >= 0)) &&
+        (!('shortagePct' in data) || (data.shortagePct is number && data.shortagePct >= 0));
+    }
+
+    function isValidSupplierOrder(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'poNumber', 'supplierId', 'supplierName', 'totalAmount', 'balanceDue', 'paymentStatus', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'poNumber', 'supplierId', 'supplierName', 'totalAmount', 'advancePaid', 'balanceDue', 'paymentStatus', 'status', 'orderDate', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isNonEmptyStr(data.poNumber, 80) &&
+        isStr(data.supplierId, 128) &&
+        isNonEmptyStr(data.supplierName, 160) &&
+        data.totalAmount is number && data.totalAmount >= 0 &&
+        data.balanceDue is number && data.balanceDue >= 0 &&
+        data.paymentStatus in ['Advance Paid', 'Payment Due', 'Settled', 'Partial'] &&
+        data.status in ['Draft', 'Confirmed', 'Dispatched', 'In Transit', 'Received at Hub', 'Inspected', 'Settled'] &&
+        (!('advancePaid' in data) || (data.advancePaid is number && data.advancePaid >= 0)) &&
+        (!('orderDate' in data) || isStr(data.orderDate, 50));
+    }
+
+    function isValidReturnRequest(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'orderId', 'customerId', 'videoUrl', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'orderId', 'orderNumber', 'customerId', 'shopName', 'videoUrl', 'damageDescription', 'status', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isStr(data.orderId, 128) &&
+        isStr(data.customerId, 128) &&
+        isNonEmptyStr(data.videoUrl, 500) &&
+        data.status in ['PENDING', 'APPROVED', 'REJECTED'] &&
+        (!('orderNumber' in data) || isStr(data.orderNumber, 80)) &&
+        (!('shopName' in data) || isStr(data.shopName, 160)) &&
+        (!('damageDescription' in data) || isStr(data.damageDescription, 500));
+    }
+
+    function isValidExpense(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'category', 'amount', 'date', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'category', 'amount', 'date', 'description', 'paidVia', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isNonEmptyStr(data.category, 60) &&
+        data.amount is number && data.amount >= 0 &&
+        isNonEmptyStr(data.date, 50) &&
+        (!('description' in data) || isStr(data.description, 400)) &&
+        (!('paidVia' in data) || isStr(data.paidVia, 60));
+    }
+
+    function isValidSettings(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessName', 'ownerName', 'upiId', 'minOrderValue', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessName', 'ownerName', 'ownerPhone', 'upiId', 'minOrderValue', 'advanceBookingAmount', 'freeDeliveryRadiusKm', 'deliveryChargePerKmOverRadius', 'maxUdhaarShortagePercent', 'minMarginPercent', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isNonEmptyStr(data.businessName, 160) &&
+        isNonEmptyStr(data.ownerName, 120) &&
+        isNonEmptyStr(data.upiId, 100) &&
+        data.minOrderValue is number && data.minOrderValue >= 0 &&
+        (!('ownerPhone' in data) || isStr(data.ownerPhone, 30)) &&
+        (!('advanceBookingAmount' in data) || (data.advanceBookingAmount is number && data.advanceBookingAmount >= 0)) &&
+        (!('freeDeliveryRadiusKm' in data) || (data.freeDeliveryRadiusKm is number && data.freeDeliveryRadiusKm >= 0)) &&
+        (!('deliveryChargePerKmOverRadius' in data) || (data.deliveryChargePerKmOverRadius is number && data.deliveryChargePerKmOverRadius >= 0)) &&
+        (!('maxUdhaarShortagePercent' in data) || (data.maxUdhaarShortagePercent is number && data.maxUdhaarShortagePercent >= 0)) &&
+        (!('minMarginPercent' in data) || (data.minMarginPercent is number && data.minMarginPercent >= 0));
+    }
+
+    function isValidWhatsAppAlert(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'businessId', 'productId', 'productName', 'supplierId', 'supplierName', 'phone', 'currentPackets', 'reorderLevel', 'suggestedReorderPackets', 'triggerType', 'status', 'provider', 'message', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'ownerUid', 'businessId', 'productId', 'productName', 'sku', 'supplierId', 'supplierName', 'phone', 'currentPackets', 'reorderLevel', 'suggestedReorderPackets', 'triggerType', 'status', 'provider', 'messageId', 'message', 'fallbackUrl', 'error', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerUid) &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.businessId) &&
+        isStr(data.productId, 128) &&
+        isNonEmptyStr(data.productName, 180) &&
+        isStr(data.supplierId, 128) &&
+        isNonEmptyStr(data.supplierName, 160) &&
+        isStr(data.phone, 30) &&
+        data.currentPackets is number && data.currentPackets >= 0 &&
+        data.reorderLevel is number && data.reorderLevel >= 0 &&
+        data.suggestedReorderPackets is number && data.suggestedReorderPackets >= 0 &&
+        data.triggerType in ['Auto-Trigger', 'Manual', 'Batch', 'Forecast-Reorder'] &&
+        data.status in ['Sent (WA API)', 'Queued (WA Link)', 'Failed'] &&
+        isNonEmptyStr(data.provider, 60) &&
+        isNonEmptyStr(data.message, 1200) &&
+        (!('sku' in data) || isStr(data.sku, 80)) &&
+        (!('messageId' in data) || isStr(data.messageId, 180)) &&
+        (!('fallbackUrl' in data) || isStr(data.fallbackUrl, 1600)) &&
+        (!('error' in data) || isStr(data.error, 400));
+    }
+
+    // ------------------------------------------------------------------
+    // Admins Registry (Read-only from client)
+    // ------------------------------------------------------------------
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, write: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // 1. Users Collection (PII isolated strictly to own UID or Admin)
+    // ------------------------------------------------------------------
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isSignedIn() && (existing().uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId &&
+        isValidUserAccount(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(userId) &&
+        isValidUserAccount(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().uid == existing().uid &&
+        (isAdmin() || (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'role', 'activeBusinessId', 'updatedAt'])));
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // 2. Businesses Collection
+    // ------------------------------------------------------------------
+    match /businesses/{businessId} {
+      allow get: if isValidId(businessId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(businessId) &&
+        isValidBusinessProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(businessId) &&
+        isValidBusinessProfile(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && incoming().diff(existing()).affectedKeys().hasOnly(['companyName', 'ownerName', 'category', 'phone', 'address', 'city', 'state', 'upiId', 'minOrderValue', 'freeDeliveryRadiusKm', 'updatedAt'])));
+      allow delete: if isValidId(businessId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 3. Customers Collection
+    // ------------------------------------------------------------------
+    match /customers/{customerId} {
+      allow get: if isValidId(customerId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(customerId) &&
+        isValidCustomer(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(customerId) &&
+        isValidCustomer(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && incoming().diff(existing()).affectedKeys().hasOnly(['shopName', 'ownerName', 'phone', 'address', 'city', 'state', 'distanceKm', 'category', 'pendingBalance', 'pendingUdhaar', 'totalOrders', 'totalSales', 'lastOrderDate', 'updatedAt'])));
+      allow delete: if isValidId(customerId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 4. Suppliers Collection
+    // ------------------------------------------------------------------
+    match /suppliers/{supplierId} {
+      allow get: if isValidId(supplierId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(supplierId) &&
+        isValidSupplier(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(supplierId) &&
+        isValidSupplier(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'brandAuth', 'phone', 'address', 'paymentTerms', 'rating', 'dueAmount', 'upiId', 'updatedAt'])));
+      allow delete: if isValidId(supplierId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 5. Products Collection
+    // ------------------------------------------------------------------
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'sku', 'brand', 'category', 'packSize', 'packetStock', 'piecesStock', 'purchaseCost', 'sellingPrice', 'marginPercent', 'reorderLevel', 'isLowStock', 'supplierId', 'warehouseZone', 'shelfCode', 'updatedAt'])));
+      allow delete: if isValidId(productId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 6. Orders Collection (with Terminal State Locking)
+    // ------------------------------------------------------------------
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(orderId) &&
+        isValidOrder(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(orderId) &&
+        isValidOrder(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (
+          isOwnerDoc(existing()) &&
+          existing().status != 'Cancelled' &&
+          existing().status != 'Returned' &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['totalAmount', 'advanceAmount', 'advancePaid', 'balanceAmount', 'status', 'updatedAt'])
+        ));
+      allow delete: if isValidId(orderId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 7. Payments Collection
+    // ------------------------------------------------------------------
+    match /payments/{paymentId} {
+      allow get: if isValidId(paymentId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(paymentId) &&
+        isValidPayment(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(paymentId) &&
+        isValidPayment(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && incoming().diff(existing()).affectedKeys().hasOnly(['confirmedByOwner', 'note', 'updatedAt'])));
+      allow delete: if isValidId(paymentId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 8. Udhaar Collection
+    // ------------------------------------------------------------------
+    match /udhaar/{udhaarId} {
+      allow get: if isValidId(udhaarId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(udhaarId) &&
+        isValidUdhaarRecord(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(udhaarId) &&
+        isValidUdhaarRecord(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && existing().status != 'Cleared' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])));
+      allow delete: if isValidId(udhaarId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 9. Supplier Purchase Orders Collection
+    // ------------------------------------------------------------------
+    match /supplierOrders/{poId} {
+      allow get: if isValidId(poId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(poId) &&
+        isValidSupplierOrder(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(poId) &&
+        isValidSupplierOrder(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && existing().status != 'Settled' && incoming().diff(existing()).affectedKeys().hasOnly(['advancePaid', 'balanceDue', 'paymentStatus', 'status', 'updatedAt'])));
+      allow delete: if isValidId(poId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 10. Returns & Damage Claims Collection
+    // ------------------------------------------------------------------
+    match /returns/{returnId} {
+      allow get: if isValidId(returnId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(returnId) &&
+        isValidReturnRequest(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(returnId) &&
+        isValidReturnRequest(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && existing().status == 'PENDING' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])));
+      allow delete: if isValidId(returnId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 11. Expenses Collection
+    // ------------------------------------------------------------------
+    match /expenses/{expenseId} {
+      allow get: if isValidId(expenseId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(expenseId) &&
+        isValidExpense(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(expenseId) &&
+        isValidExpense(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && incoming().diff(existing()).affectedKeys().hasOnly(['category', 'amount', 'date', 'description', 'paidVia', 'updatedAt'])));
+      allow delete: if isValidId(expenseId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 12. Business Settings Collection
+    // ------------------------------------------------------------------
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(settingId) &&
+        isValidSettings(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(settingId) &&
+        isValidSettings(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && incoming().diff(existing()).affectedKeys().hasOnly(['businessName', 'ownerName', 'ownerPhone', 'upiId', 'minOrderValue', 'advanceBookingAmount', 'freeDeliveryRadiusKm', 'deliveryChargePerKmOverRadius', 'maxUdhaarShortagePercent', 'minMarginPercent', 'updatedAt'])));
+      allow delete: if isValidId(settingId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 13. Automated WhatsApp Dealer Alerts Collection
+    // ------------------------------------------------------------------
+    match /whatsappAlerts/{alertId} {
+      allow get: if isValidId(alertId) && (isOwnerDoc(existing()) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(alertId) &&
+        isValidWhatsAppAlert(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(alertId) &&
+        isValidWhatsAppAlert(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().id == existing().id &&
+        (isAdmin() || (isOwnerDoc(existing()) && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'messageId', 'error', 'updatedAt'])));
+      allow delete: if isValidId(alertId) && (isOwnerDoc(existing()) || isAdmin());
+    }
+
+    // ------------------------------------------------------------------
+    // 14. Connection Probe
+    // ------------------------------------------------------------------
+    match /test/{docId} {
+      allow get: if isSignedIn() && isValidId(docId);
+      allow list, write: if false;
+    }
+  }
+}

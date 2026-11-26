@@ -1,0 +1,9 @@
+# Robots.txt for Rupam Cosmetic & FMCG Wholesale
+User-agent: *
+Allow: /
+Allow: /landing
+Disallow: /app/
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://ais-pre-dmkplgapp7nkrhd62jxuey-528990576163.asia-east1.run.app/sitemap.xml

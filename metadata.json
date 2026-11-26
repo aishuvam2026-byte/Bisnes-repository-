@@ -1,0 +1,6 @@
+{
+  "name": "Rupam Business Manager",
+  "description": "B2B cosmetic & FMCG wholesale management platform for Rupam (Nuapatna, Cuttack, Odisha). Orders, stock, khata, deliveries, returns, AI assistant, and Dukani portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,350 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "User Account",
+      "description": "Authenticated workspace user profile and active role/business preference.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "role": { "type": "string", "enum": ["owner", "customer", "supplier"] },
+        "activeBusinessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "displayName", "role", "createdAt", "updatedAt"]
+    },
+    "BusinessProfile": {
+      "title": "Business Profile",
+      "description": "Multi-business company profile owned by the workspace owner.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "companyName": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "ownerName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "address": { "type": "string", "maxLength": 300 },
+        "city": { "type": "string", "maxLength": 80 },
+        "state": { "type": "string", "maxLength": 80 },
+        "upiId": { "type": "string", "maxLength": 100 },
+        "minOrderValue": { "type": "number" },
+        "freeDeliveryRadiusKm": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "companyName", "ownerName", "upiId", "createdAt", "updatedAt"]
+    },
+    "Customer": {
+      "title": "Customer Shopkeeper",
+      "description": "Registered Dukani shopkeeper account.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "shopName": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "ownerName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "address": { "type": "string", "maxLength": 300 },
+        "city": { "type": "string", "maxLength": 80 },
+        "state": { "type": "string", "maxLength": 80 },
+        "distanceKm": { "type": "number" },
+        "category": { "type": "string", "maxLength": 80 },
+        "pendingBalance": { "type": "number" },
+        "pendingUdhaar": { "type": "number" },
+        "totalOrders": { "type": "number" },
+        "totalSales": { "type": "number" },
+        "lastOrderDate": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "shopName", "ownerName", "phone", "pendingBalance", "pendingUdhaar", "createdAt", "updatedAt"]
+    },
+    "Supplier": {
+      "title": "Supplier Dealer",
+      "description": "Registered cosmetic wholesale supplier / C&F dealer.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "brandAuth": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "address": { "type": "string", "maxLength": 300 },
+        "paymentTerms": { "type": "string", "maxLength": 120 },
+        "rating": { "type": "number" },
+        "dueAmount": { "type": "number" },
+        "upiId": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "name", "phone", "dueAmount", "createdAt", "updatedAt"]
+    },
+    "Product": {
+      "title": "Wholesale Product",
+      "description": "Cosmetic SKU stocked in full 6/12-piece packets.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "sku": { "type": "string", "maxLength": 80 },
+        "brand": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "maxLength": 100 },
+        "packSize": { "type": "number" },
+        "packetStock": { "type": "number" },
+        "piecesStock": { "type": "number" },
+        "purchaseCost": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "marginPercent": { "type": "number" },
+        "reorderLevel": { "type": "number" },
+        "isLowStock": { "type": "boolean" },
+        "supplierId": { "type": "string", "maxLength": 128 },
+        "warehouseZone": { "type": "string", "maxLength": 80 },
+        "shelfCode": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "name", "sku", "packSize", "packetStock", "purchaseCost", "sellingPrice", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Wholesale Order",
+      "description": "Dukani wholesale order with advance and delivery status tracking.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "orderNumber": { "type": "string", "maxLength": 80 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 120 },
+        "shopName": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "totalAmount": { "type": "number" },
+        "advanceAmount": { "type": "number" },
+        "advancePaid": { "type": "boolean" },
+        "balanceAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Enquiry", "Advance Pending", "Booked", "Packed", "Dispatched", "Delivered", "On Hold", "Reschedule", "Cancelled", "Returned"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "orderNumber", "customerId", "shopName", "totalAmount", "status", "createdAt", "updatedAt"]
+    },
+    "Payment": {
+      "title": "Khata Payment",
+      "description": "Recorded inward or outward payment entry in Khata.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 120 },
+        "shopName": { "type": "string", "maxLength": 160 },
+        "amount": { "type": "number" },
+        "mode": { "type": "string", "enum": ["UPI", "Cash", "Bank", "Bus-cash"] },
+        "referenceId": { "type": "string", "maxLength": 120 },
+        "confirmedByOwner": { "type": "boolean" },
+        "type": { "type": "string", "maxLength": 40 },
+        "note": { "type": "string", "maxLength": 400 },
+        "date": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "customerId", "amount", "mode", "referenceId", "confirmedByOwner", "date", "createdAt", "updatedAt"]
+    },
+    "UdhaarRecord": {
+      "title": "Udhaar Shortage Record",
+      "description": "Delivery shortage record governed by the 10% Udhaar tolerance rule.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "shopName": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 80 },
+        "shortageAmount": { "type": "number" },
+        "billAmount": { "type": "number" },
+        "shortagePct": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Cleared"] },
+        "date": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "customerId", "shopName", "orderId", "shortageAmount", "status", "date", "createdAt", "updatedAt"]
+    },
+    "SupplierPurchaseOrder": {
+      "title": "Supplier Purchase Order",
+      "description": "Wholesale procurement consignment order placed with a supplier.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "poNumber": { "type": "string", "maxLength": 80 },
+        "supplierId": { "type": "string", "maxLength": 128 },
+        "supplierName": { "type": "string", "maxLength": 160 },
+        "totalAmount": { "type": "number" },
+        "advancePaid": { "type": "number" },
+        "balanceDue": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["Advance Paid", "Payment Due", "Settled", "Partial"] },
+        "status": { "type": "string", "enum": ["Draft", "Confirmed", "Dispatched", "In Transit", "Received at Hub", "Inspected", "Settled"] },
+        "orderDate": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "poNumber", "supplierId", "supplierName", "totalAmount", "balanceDue", "paymentStatus", "status", "createdAt", "updatedAt"]
+    },
+    "ReturnRequest": {
+      "title": "Return & Damage Claim",
+      "description": "Damage return claim requiring continuous unboxing video proof.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 80 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "shopName": { "type": "string", "maxLength": 160 },
+        "videoUrl": { "type": "string", "maxLength": 500 },
+        "damageDescription": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "orderId", "customerId", "videoUrl", "status", "createdAt", "updatedAt"]
+    },
+    "Expense": {
+      "title": "Business Expense",
+      "description": "Operational freight, packing, rent, and salary expense entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "category": { "type": "string", "maxLength": 60 },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 400 },
+        "paidVia": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "category", "amount", "date", "createdAt", "updatedAt"]
+    },
+    "BusinessSettings": {
+      "title": "Business Settings",
+      "description": "Owner business rules, UPI payment ID, and landed cost rule defaults.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessName": { "type": "string", "maxLength": 160 },
+        "ownerName": { "type": "string", "maxLength": 120 },
+        "ownerPhone": { "type": "string", "maxLength": 30 },
+        "upiId": { "type": "string", "maxLength": 100 },
+        "minOrderValue": { "type": "number" },
+        "advanceBookingAmount": { "type": "number" },
+        "freeDeliveryRadiusKm": { "type": "number" },
+        "deliveryChargePerKmOverRadius": { "type": "number" },
+        "maxUdhaarShortagePercent": { "type": "number" },
+        "minMarginPercent": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessName", "ownerName", "upiId", "minOrderValue", "createdAt", "updatedAt"]
+    },
+    "WhatsAppAlertLog": {
+      "title": "Automated WhatsApp Restock Alert",
+      "description": "Database log of automated dealer low-stock & out-of-stock WhatsApp notifications.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "businessId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "productId": { "type": "string", "maxLength": 128 },
+        "productName": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "sku": { "type": "string", "maxLength": 80 },
+        "supplierId": { "type": "string", "maxLength": 128 },
+        "supplierName": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "currentPackets": { "type": "number" },
+        "reorderLevel": { "type": "number" },
+        "suggestedReorderPackets": { "type": "number" },
+        "triggerType": { "type": "string", "enum": ["Auto-Trigger", "Manual", "Batch", "Forecast-Reorder"] },
+        "status": { "type": "string", "enum": ["Sent (WA API)", "Queued (WA Link)", "Failed"] },
+        "provider": { "type": "string", "maxLength": 60 },
+        "messageId": { "type": "string", "maxLength": 180 },
+        "message": { "type": "string", "maxLength": 1200 },
+        "fallbackUrl": { "type": "string", "maxLength": 1600 },
+        "error": { "type": "string", "maxLength": 400 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "businessId", "productId", "productName", "supplierId", "supplierName", "phone", "currentPackets", "reorderLevel", "suggestedReorderPackets", "triggerType", "status", "provider", "message", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Private authenticated user profile and workspace metadata."
+    },
+    "/businesses/{businessId}": {
+      "schema": { "$ref": "#/entities/BusinessProfile" },
+      "description": "Multi-business company profiles owned by the authenticated user."
+    },
+    "/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Dukani shopkeeper accounts synced with Firestore."
+    },
+    "/suppliers/{supplierId}": {
+      "schema": { "$ref": "#/entities/Supplier" },
+      "description": "Supplier and C&F partner accounts synced with Firestore."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Cosmetic wholesale SKU catalog and packet inventory."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Wholesale customer orders and delivery states."
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Khata payment records (inward Dukani and outward Supplier)."
+    },
+    "/udhaar/{udhaarId}": {
+      "schema": { "$ref": "#/entities/UdhaarRecord" },
+      "description": "10% shortage Udhaar ledger entries."
+    },
+    "/supplierOrders/{poId}": {
+      "schema": { "$ref": "#/entities/SupplierPurchaseOrder" },
+      "description": "Supplier procurement orders and payable settlement status."
+    },
+    "/returns/{returnId}": {
+      "schema": { "$ref": "#/entities/ReturnRequest" },
+      "description": "Damage return claims with unboxing video proof."
+    },
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Operational freight, packing, and shop expenses."
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/BusinessSettings" },
+      "description": "Business rule thresholds, landed cost settings, and UPI configuration."
+    },
+    "/whatsappAlerts/{alertId}": {
+      "schema": { "$ref": "#/entities/WhatsAppAlertLog" },
+      "description": "Real-time database log of automated WhatsApp dealer restock notifications."
+    }
+  }
+}
